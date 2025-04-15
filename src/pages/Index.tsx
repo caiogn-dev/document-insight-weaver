@@ -6,10 +6,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { initializeVectorStore } from "@/services/setupService";
 import { useToast } from "@/components/ui/use-toast";
 import { ASSISTANT_ROLES } from "@/config/config";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { ProcessingVisualizer } from "@/components/ProcessingVisualizer";
 
 const Index = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const { toast } = useToast();
+  const [processingInfo, setProcessingInfo] = useState({
+    currentFile: undefined,
+    processingStage: undefined,
+    progress: 0,
+    stats: {
+      totalChunks: 0,
+      processedChunks: 0,
+      vectorsGenerated: 0,
+    },
+  });
 
   // Initialize the vector database on component mount
   useEffect(() => {
@@ -33,8 +45,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 space-y-6">
-      <div className="max-w-4xl mx-auto text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">RAG Assistant</h1>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-4xl font-bold text-gray-900">RAG Assistant</h1>
+          <SettingsDialog />
+        </div>
         <p className="text-gray-600 mb-4">Upload documents and start chatting!</p>
         
         <div className="flex justify-center gap-4 mb-6">
@@ -47,6 +62,10 @@ const Index = () => {
         </div>
       </div>
 
+      <div className="max-w-4xl mx-auto">
+        <ProcessingVisualizer {...processingInfo} />
+      </div>
+
       <Tabs defaultValue="chat" className="max-w-4xl mx-auto">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="chat">Chat</TabsTrigger>
@@ -56,7 +75,7 @@ const Index = () => {
           <ChatInterface />
         </TabsContent>
         <TabsContent value="upload">
-          <FileUpload />
+          <FileUpload onProcessingUpdate={setProcessingInfo} />
         </TabsContent>
       </Tabs>
     </div>
