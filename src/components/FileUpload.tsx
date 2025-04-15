@@ -2,8 +2,10 @@
 import { useState, useCallback } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, File, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, File, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { processDocument } from '@/services/documentService';
 
 interface FileWithPreview extends File {
   preview?: string;
@@ -11,6 +13,8 @@ interface FileWithPreview extends File {
 
 export function FileUpload() {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState<string[]>([]);
   const { toast } = useToast();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -39,12 +43,45 @@ export function FileUpload() {
     onDrop(droppedFiles);
   };
 
+  const handleProcessFiles = async () => {
+    if (files.length === 0) return;
+    
+    setIsProcessing(true);
+    const processed: string[] = [];
+    
+    try {
+      for (const file of files) {
+        if (processedFiles.includes(file.name)) continue;
+        
+        await processDocument(file);
+        processed.push(file.name);
+        
+        toast({
+          title: "Document processed",
+          description: `Successfully processed ${file.name}`,
+        });
+      }
+      
+      setProcessedFiles(prev => [...prev, ...processed]);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      toast({
+        variant: "destructive",
+        title: "Processing failed",
+        description: `An error occurred while processing documents: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Card className="p-4 w-full max-w-4xl mx-auto">
       <div
         className="border-2 border-dashed rounded-lg p-8 text-center"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        data-testid="file-upload"
       >
         <Upload className="mx-auto h-12 w-12 text-gray-400" />
         <div className="mt-4">
@@ -71,26 +108,48 @@ export function FileUpload() {
       </div>
 
       {files.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {files.map((file) => (
-            <div
-              key={file.name}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded"
-            >
-              <div className="flex items-center space-x-2">
-                <File className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-700">{file.name}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeFile(file.name)}
+        <>
+          <div className="mt-4 space-y-2">
+            {files.map((file) => (
+              <div
+                key={file.name}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
               >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center space-x-2">
+                  <File className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-700">{file.name}</span>
+                  {processedFiles.includes(file.name) && (
+                    <span className="text-xs text-green-600 font-medium">Processed</span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(file.name)}
+                  disabled={isProcessing && !processedFiles.includes(file.name)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={handleProcessFiles}
+              disabled={isProcessing || files.every(file => processedFiles.includes(file.name))}
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Process Documents'
+              )}
+            </Button>
+          </div>
+        </>
       )}
     </Card>
   );
