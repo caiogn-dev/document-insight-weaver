@@ -6,6 +6,7 @@ export interface Model {
   name: string;
   description?: string;
   type: 'chat' | 'embeddings';
+  status?: 'available' | 'limited' | 'unavailable';
 }
 
 export const fetchGrokModels = async (): Promise<Model[]> => {
@@ -26,13 +27,14 @@ export const fetchGrokModels = async (): Promise<Model[]> => {
       id: model.id,
       name: model.name || model.id,
       description: model.description,
-      type: 'chat'
+      type: 'chat',
+      status: 'available' // Default status for fetched models
     }));
   } catch (error) {
     console.error('Error fetching Grok models:', error);
     return [
-      { id: 'grok-1', name: 'Grok-1', type: 'chat' },
-      { id: 'grok-1-pro', name: 'Grok-1 Pro', type: 'chat' }
+      { id: 'grok-1', name: 'Grok-1', type: 'chat', status: 'available' },
+      { id: 'grok-1-pro', name: 'Grok-1 Pro', type: 'chat', status: 'available' }
     ];
   }
 };
@@ -50,14 +52,14 @@ export const fetchOllamaModels = async (): Promise<Model[]> => {
       id: model.name,
       name: model.name,
       description: `Size: ${model.size}`,
-      type: 'embeddings'
+      type: 'embeddings',
+      status: 'available' // Default status for fetched models
     }));
   } catch (error) {
     console.error('Error fetching Ollama models:', error);
     return [
-      { id: 'all-minilm', name: 'All-MiniLM', type: 'embeddings' },
-      { id: 'nomic-embed-text', name: 'Nomic Embed', type: 'embeddings' }
+      { id: 'all-minilm', name: 'All-MiniLM', type: 'embeddings', status: 'available' },
+      { id: 'nomic-embed-text', name: 'Nomic Embed', type: 'embeddings', status: 'available' }
     ];
   }
 };
-
