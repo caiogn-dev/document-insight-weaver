@@ -1,4 +1,3 @@
-
 export const API_CONFIG = {
   GROK: {
     BASE_URL: 'https://api.x.ai/v1',
@@ -21,6 +20,16 @@ export const API_CONFIG = {
 export const COLLECTION_NAME = 'documents';
 export const CHUNK_SIZE = 1000;
 export const CHUNK_OVERLAP = 200;
+
+export interface ModelConfig {
+  grok: string;
+  ollama: string;
+}
+
+export const DEFAULT_MODELS: ModelConfig = {
+  grok: 'grok-1',
+  ollama: 'all-minilm'
+};
 
 export const ASSISTANT_ROLES = {
   RESEARCHER: {

@@ -18,17 +18,18 @@ export interface Message {
 // Function to query Grok API with fallback
 export const queryGrokAPI = async (
   messages: Message[],
-  role: AssistantRole = 'RESEARCHER'
+  role: AssistantRole = 'RESEARCHER',
+  model: string = 'grok-1'
 ): Promise<string> => {
   try {
     // Get context from similar documents
     const userMessage = messages.filter(m => m.role === 'user').pop();
-    let context = '';
+    let contextData = '';
     
     if (userMessage) {
       const similarDocs = await searchSimilarDocuments(userMessage.content);
       if (similarDocs.length > 0) {
-        context = 'Context from documents:\n' + similarDocs.map(doc => doc.text).join('\n\n');
+        contextData = 'Context from documents:\n' + similarDocs.map(doc => doc.text).join('\n\n');
       }
     }
 
@@ -45,7 +46,7 @@ export const queryGrokAPI = async (
     const formattedMessages = [
       {
         role: 'system',
-        content: `${ASSISTANT_ROLES[role].systemPrompt}\n\n${context ? context : 'No relevant document context found.'}`
+        content: `${ASSISTANT_ROLES[role].systemPrompt}\n\n${contextData ? contextData : 'No relevant document context found.'}`
       },
       ...messages.map(msg => ({
         role: msg.role,
@@ -62,7 +63,7 @@ export const queryGrokAPI = async (
           'Authorization': `Bearer ${API_CONFIG.GROK.API_KEY}`
         },
         body: JSON.stringify({
-          model: 'grok-1',
+          model: model,
           messages: formattedMessages,
           temperature: 0.7,
           max_tokens: 800
@@ -91,7 +92,7 @@ export const queryGrokAPI = async (
       description: 'Using fallback response. Some functionality may be limited.',
     });
     
-    const fallbackResponse = createFallbackResponse(messages, context);
+    const fallbackResponse = createFallbackResponse(messages, contextData);
     return fallbackResponse;
   }
 };

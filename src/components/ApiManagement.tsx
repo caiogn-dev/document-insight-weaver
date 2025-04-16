@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle, Loader2, Settings, Shield, Database, Brain } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from "@/config/config";
+import { API_CONFIG, DEFAULT_MODELS, ModelConfig } from "@/config/config";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +22,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ModelSelector } from './ModelSelector';
+import { fetchGrokModels, fetchOllamaModels, Model } from '@/services/modelService';
 
 interface ApiStatus {
   grok: 'idle' | 'checking' | 'success' | 'error';
@@ -44,6 +45,12 @@ interface ApiConfig {
   };
 }
 
+interface ApiManagementState extends ApiStatus {
+  grokModels: Model[];
+  ollamaModels: Model[];
+  selectedModels: ModelConfig;
+}
+
 export function ApiManagement() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>({
     grok: 'idle',
@@ -55,6 +62,32 @@ export function ApiManagement() {
   const [activeTab, setActiveTab] = useState("grok");
   const [openDialog, setOpenDialog] = useState(false);
   const { toast } = useToast();
+
+  const [state, setState] = useState<ApiManagementState>({
+    grok: 'idle',
+    qdrant: 'idle',
+    ollama: 'idle',
+    grokModels: [],
+    ollamaModels: [],
+    selectedModels: DEFAULT_MODELS
+  });
+
+  useEffect(() => {
+    const loadModels = async () => {
+      const [grokModels, ollamaModels] = await Promise.all([
+        fetchGrokModels(),
+        fetchOllamaModels()
+      ]);
+      
+      setState(prev => ({
+        ...prev,
+        grokModels,
+        ollamaModels
+      }));
+    };
+    
+    loadModels();
+  }, []);
 
   const testGrokApi = async () => {
     setApiStatus(prev => ({ ...prev, grok: 'checking' }));
@@ -318,6 +351,16 @@ export function ApiManagement() {
             </div>
             
             <div className="flex items-center gap-2">
+              <ModelSelector
+                models={state.grokModels}
+                selectedModel={state.selectedModels.grok}
+                onModelSelect={(modelId) => setState(prev => ({
+                  ...prev,
+                  selectedModels: { ...prev.selectedModels, grok: modelId }
+                }))}
+                type="chat"
+                className="w-40"
+              />
               {getStatusIcon(apiStatus.grok)}
               <TooltipProvider>
                 <Tooltip>
@@ -374,6 +417,16 @@ export function ApiManagement() {
             </div>
             
             <div className="flex items-center gap-2">
+              <ModelSelector
+                models={state.ollamaModels}
+                selectedModel={state.selectedModels.ollama}
+                onModelSelect={(modelId) => setState(prev => ({
+                  ...prev,
+                  selectedModels: { ...prev.selectedModels, ollama: modelId }
+                }))}
+                type="embeddings"
+                className="w-40"
+              />
               {getStatusIcon(apiStatus.ollama)}
               <TooltipProvider>
                 <Tooltip>
