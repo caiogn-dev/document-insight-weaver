@@ -92,8 +92,7 @@ export const queryGrokAPI = async (
       description: 'Using fallback response. Some functionality may be limited.',
     });
     
-    const fallbackResponse = createFallbackResponse(messages, contextData);
-    return fallbackResponse;
+    return createFallbackResponse(messages, contextData);
   }
 };
 
