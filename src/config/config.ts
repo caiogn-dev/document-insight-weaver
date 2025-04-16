@@ -3,13 +3,18 @@ export const API_CONFIG = {
   GROK: {
     BASE_URL: 'https://api.x.ai/v1',
     API_KEY: 'xai-KpZZyU6MIarnkWHwteAirawTVHo2PyLp65MJrQVVQGlW3AvXPqcrnPabMc4zoi1pUDi21DCg3jnggntL',
+    FALLBACK_ENABLED: true,
   },
   QDRANT: {
     BASE_URL: 'https://e91380d5-0433-4f43-8d38-5932f7af19ff.us-east4-0.gcp.cloud.qdrant.io:6333',
     API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.BfJWuuXEQDXciSvtLDbUFbVkqNezhahrJLQZMwO_l-Y',
+    FALLBACK_ENABLED: true,
+    LOCAL_STORAGE_KEY: 'qdrant_cache',
   },
   OLLAMA: {
     BASE_URL: 'http://localhost:11434',
+    FALLBACK_ENABLED: true,
+    FALLBACK_MODEL: 'all-minilm', // Fallback to the same model when the API is down
   },
 };
 
@@ -39,3 +44,10 @@ export const ASSISTANT_ROLES = {
 } as const;
 
 export type AssistantRole = keyof typeof ASSISTANT_ROLES;
+
+// Fallback configuration
+export const FALLBACK_CONFIG = {
+  MAX_RETRY_ATTEMPTS: 3,
+  RETRY_DELAY_MS: 1000,
+  CACHE_EXPIRATION_MS: 24 * 60 * 60 * 1000, // 24 hours
+};
