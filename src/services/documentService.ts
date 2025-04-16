@@ -1,4 +1,3 @@
-
 import { CHUNK_SIZE, CHUNK_OVERLAP, COLLECTION_NAME, API_CONFIG } from '@/config/config';
 import { retryWithBackoff, cacheData, getCachedData, storeVectorsInLocalCache, localVectorSearch } from './fallbackService';
 import { toast } from 'sonner';
