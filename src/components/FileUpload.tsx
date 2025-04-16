@@ -1,21 +1,46 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, Dispatch, SetStateAction } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Upload, File, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { processDocument } from '@/services/documentService';
+import { processDocument, extractTextFromFile, chunkText, createEmbedding, storeVectors } from '@/services/documentService';
+import { API_CONFIG } from '@/config/config';
 
 interface FileWithPreview extends File {
   preview?: string;
 }
 
-export function FileUpload() {
+interface ProcessingInfo {
+  currentFile?: {
+    name: string;
+    size: number;
+    type: string;
+  };
+  processingStage?: "uploading" | "extracting" | "embedding" | "storing" | "complete";
+  progress: number;
+  stats: {
+    totalChunks: number;
+    processedChunks: number;
+    vectorsGenerated: number;
+  };
+}
+
+interface FileUploadProps {
+  onProcessingUpdate?: Dispatch<SetStateAction<ProcessingInfo>>;
+}
+
+export function FileUpload({ onProcessingUpdate }: FileUploadProps) {
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedFiles, setProcessedFiles] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const updateProcessingInfo = (info: Partial<ProcessingInfo>) => {
+    if (onProcessingUpdate) {
+      onProcessingUpdate(prev => ({ ...prev, ...info }));
+    }
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [
@@ -43,6 +68,76 @@ export function FileUpload() {
     onDrop(droppedFiles);
   };
 
+  const processDocumentWithUpdates = async (file: File) => {
+    try {
+      // Update current file info
+      updateProcessingInfo({
+        currentFile: {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        },
+        processingStage: "uploading",
+        progress: 5
+      });
+
+      // Extract text
+      updateProcessingInfo({ processingStage: "extracting", progress: 20 });
+      const text = await extractTextFromFile(file);
+      
+      // Chunk text
+      updateProcessingInfo({ 
+        processingStage: "extracting", 
+        progress: 40
+      });
+      const chunks = chunkText(text);
+      updateProcessingInfo({ 
+        stats: { 
+          totalChunks: chunks.length,
+          processedChunks: 0,
+          vectorsGenerated: 0
+        }
+      });
+      
+      // Create embeddings
+      updateProcessingInfo({ processingStage: "embedding", progress: 60 });
+      const embeddings: number[][] = [];
+      
+      for (let i = 0; i < chunks.length; i++) {
+        const embedding = await createEmbedding(chunks[i]);
+        embeddings.push(embedding);
+        
+        // Update progress for each chunk processed
+        updateProcessingInfo({ 
+          progress: 60 + Math.floor((i / chunks.length) * 20),
+          stats: { 
+            totalChunks: chunks.length,
+            processedChunks: i + 1,
+            vectorsGenerated: embeddings.length
+          }
+        });
+      }
+      
+      // Store vectors
+      updateProcessingInfo({ processingStage: "storing", progress: 80 });
+      const metadata = chunks.map(() => ({
+        filename: file.name,
+        fileType: file.type,
+        timestamp: new Date().toISOString(),
+      }));
+      
+      await storeVectors(chunks, embeddings, metadata);
+      
+      // Complete
+      updateProcessingInfo({ processingStage: "complete", progress: 100 });
+      
+      return true;
+    } catch (error) {
+      console.error('Error processing document:', error);
+      throw error;
+    }
+  };
+
   const handleProcessFiles = async () => {
     if (files.length === 0) return;
     
@@ -53,7 +148,7 @@ export function FileUpload() {
       for (const file of files) {
         if (processedFiles.includes(file.name)) continue;
         
-        await processDocument(file);
+        await processDocumentWithUpdates(file);
         processed.push(file.name);
         
         toast({
@@ -70,6 +165,7 @@ export function FileUpload() {
         title: "Processing failed",
         description: `An error occurred while processing documents: ${error instanceof Error ? error.message : 'Unknown error'}`,
       });
+      updateProcessingInfo({ processingStage: undefined, progress: 0 });
     } finally {
       setIsProcessing(false);
     }

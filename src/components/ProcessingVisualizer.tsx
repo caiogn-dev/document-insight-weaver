@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AlertCircle, CheckCircle, RefreshCw } from "lucide-react";
 
 interface ProcessingVisualizerProps {
   currentFile?: {

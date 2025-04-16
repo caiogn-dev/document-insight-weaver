@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ASSISTANT_ROLES } from "@/config/config";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { ProcessingVisualizer } from "@/components/ProcessingVisualizer";
+import { ApiStatusCheck } from "@/components/ApiStatusCheck";
 
 const Index = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -62,8 +63,14 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <ProcessingVisualizer {...processingInfo} />
+      <div className="max-w-4xl mx-auto grid gap-4 md:grid-cols-2">
+        <ProcessingVisualizer 
+          currentFile={processingInfo.currentFile}
+          processingStage={processingInfo.processingStage}
+          progress={processingInfo.progress}
+          stats={processingInfo.stats}
+        />
+        <ApiStatusCheck />
       </div>
 
       <Tabs defaultValue="chat" className="max-w-4xl mx-auto">
