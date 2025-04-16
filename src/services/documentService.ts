@@ -2,6 +2,8 @@
 import { CHUNK_SIZE, CHUNK_OVERLAP, COLLECTION_NAME, API_CONFIG } from '@/config/config';
 import { retryWithBackoff, cacheData, getCachedData, storeVectorsInLocalCache, localVectorSearch } from './fallbackService';
 import { toast } from 'sonner';
+import { qdrantClient } from './setupService';
+import { v4 as uuidv4 } from 'uuid';
 
 // Function to extract text from files
 export const extractTextFromFile = async (file: File): Promise<string> => {
@@ -90,7 +92,7 @@ export const storeVectors = async (
 ): Promise<void> => {
   try {
     const points = embeddings.map((embedding, i) => ({
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       vector: embedding,
       payload: {
         text: texts[i],
@@ -102,24 +104,21 @@ export const storeVectors = async (
     storeVectorsInLocalCache(points);
     
     // Store in Qdrant with retry logic
-    await retryWithBackoff(async () => {
-      const response = await fetch(`${API_CONFIG.QDRANT.BASE_URL}/collections/${COLLECTION_NAME}/points`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': API_CONFIG.QDRANT.API_KEY,
-        },
-        body: JSON.stringify({ points }),
+    try {
+      await qdrantClient.upsert(COLLECTION_NAME, {
+        points: points.map(p => ({
+          id: p.id,
+          vector: p.vector,
+          payload: p.payload
+        }))
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to store vectors: ${response.statusText}`);
-      }
-    });
-    
-    toast.success('Vectors stored successfully', {
-      description: `${texts.length} chunks have been processed and stored.`,
-    });
+      
+      toast.success('Vectors stored successfully', {
+        description: `${texts.length} chunks have been processed and stored.`,
+      });
+    } catch (error) {
+      throw new Error(`Failed to store vectors: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   } catch (error) {
     console.error('Error storing vectors:', error);
     toast.warning('Vectors stored locally only', {
@@ -137,28 +136,12 @@ export const searchSimilarDocuments = async (query: string, limit: number = 3): 
     
     // Search Qdrant with retry logic
     try {
-      const response = await retryWithBackoff(async () => {
-        const res = await fetch(`${API_CONFIG.QDRANT.BASE_URL}/collections/${COLLECTION_NAME}/points/search`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'api-key': API_CONFIG.QDRANT.API_KEY,
-          },
-          body: JSON.stringify({
-            vector: embedding,
-            limit,
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to search vectors: ${res.statusText}`);
-        }
-        
-        return res;
+      const searchResult = await qdrantClient.search(COLLECTION_NAME, {
+        vector: embedding,
+        limit: limit,
       });
-
-      const data = await response.json();
-      return data.result.map((item: any) => item.payload);
+      
+      return searchResult.map(item => item.payload);
     } catch (error) {
       console.error('Error searching from Qdrant, falling back to local search:', error);
       toast.warning('Using local vector search', {

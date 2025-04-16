@@ -1,3 +1,4 @@
+
 export const API_CONFIG = {
   GROK: {
     BASE_URL: 'https://api.x.ai/v1',
@@ -6,7 +7,7 @@ export const API_CONFIG = {
   },
   QDRANT: {
     BASE_URL: 'https://e91380d5-0433-4f43-8d38-5932f7af19ff.us-east4-0.gcp.cloud.qdrant.io:6333',
-    API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIn0.BfJWuuXEQDXciSvtLDbUFbVkqNezhahrJLQZMwO_l-Y',
+    API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzQ1NjI2MjA4fQ.qVt8NZMFp9CsjlE7D4G_ZBJtCkJVr6AC9h3KxQcuAyw',
     FALLBACK_ENABLED: true,
     LOCAL_STORAGE_KEY: 'qdrant_cache',
   },

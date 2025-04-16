@@ -97,7 +97,7 @@ export const queryGrokAPI = async (
 };
 
 // Function for fallback responses when API fails
-function createFallbackResponse(messages: Message[], context?: string): string {
+function createFallbackResponse(messages: Message[], contextData?: string): string {
   const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
   
   // Extremely simple fallback - in a real app, you might use a local model
@@ -105,7 +105,7 @@ function createFallbackResponse(messages: Message[], context?: string): string {
   
 Your question was about: "${lastUserMessage.substring(0, 100)}${lastUserMessage.length > 100 ? '...' : ''}"
 
-${context ? 'I found some potentially relevant information in your documents, but cannot analyze it completely right now.' : 'I couldn\'t find relevant information in your documents.'}
+${contextData ? 'I found some potentially relevant information in your documents, but cannot analyze it completely right now.' : 'I couldn\'t find relevant information in your documents.'}
 
 Please try again later when the connection is restored. In the meantime, you can try:
 1. Asking a more specific question

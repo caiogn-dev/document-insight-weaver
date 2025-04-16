@@ -10,7 +10,9 @@ import {
 import { Model } from '@/services/modelService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
   models: Model[];
@@ -57,10 +59,32 @@ export function ModelSelector({
         onValueChange={onModelSelect}
         disabled={disabled || models.length === 0}
       >
-        <SelectTrigger className={`h-9 ${className}`}>
-          <SelectValue placeholder={`Select ${type} model`} />
+        <SelectTrigger className={cn("h-9 transition-all", className, {
+          "border-green-500 shadow-sm shadow-green-100": selectedModelData?.status === 'available',
+          "border-yellow-500 shadow-sm shadow-yellow-100": selectedModelData?.status === 'limited',
+          "border-red-500 shadow-sm shadow-red-100": selectedModelData?.status === 'unavailable'
+        })}>
+          <SelectValue placeholder={`Select ${type} model`}>
+            {selectedModelData && (
+              <div className="flex items-center justify-between w-full">
+                <span>{selectedModelData.name}</span>
+                {selectedModelData.status && (
+                  <Badge variant={
+                    selectedModelData.status === 'available' ? 'success' : 
+                    selectedModelData.status === 'limited' ? 'warning' : 'destructive'
+                  } className="ml-2 text-[10px] py-0 h-5">
+                    {selectedModelData.status === 'available' ? (
+                      <Check className="h-3 w-3 mr-1" />
+                    ) : null}
+                    {selectedModelData.status === 'available' ? 'Active' : 
+                      selectedModelData.status === 'limited' ? 'Limited' : 'Offline'}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-h-[200px]">
+        <SelectContent className="max-h-[300px] overflow-y-auto">
           {models.length === 0 ? (
             <div className="py-2 px-2 text-sm text-muted-foreground italic">
               No models available
@@ -69,7 +93,18 @@ export function ModelSelector({
             models.map((model) => (
               <SelectItem key={model.id} value={model.id} className="py-2">
                 <div className="flex flex-col">
-                  <span className="font-medium">{model.name}</span>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-medium">{model.name}</span>
+                    {model.status && (
+                      <Badge variant={
+                        model.status === 'available' ? 'success' : 
+                        model.status === 'limited' ? 'warning' : 'destructive'
+                      } className="ml-2 text-[10px] py-0 h-5">
+                        {model.status === 'available' ? 'Active' : 
+                          model.status === 'limited' ? 'Limited' : 'Offline'}
+                      </Badge>
+                    )}
+                  </div>
                   {model.description && (
                     <span className="text-xs text-muted-foreground truncate max-w-[250px]">
                       {model.description}
